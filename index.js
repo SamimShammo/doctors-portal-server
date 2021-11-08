@@ -20,24 +20,50 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect();
-        console.log('database collection successfully')
+        console.log('database collection successfully');
         const database = client.db("doctors_portal");
         const appointmentsCollection = database.collection("appointment");
+        const usersCollection = database.collection("users");
 
-        app.post('/appointments', async (req, res) => {
-            const appointment = req.body;
-            const result = await appointmentsCollection.insertOne(appointment)
-            console.log(appointment)
-            res.send(result)
-        })
+
         app.get('/appointments', async (req, res) => {
             const email = req.query.email;
-            const query = { email: email }
+            const date = new Date(req.query.date).toLocaleDateString();
+
+            const query = { email: email, date: date }
             const cursor = appointmentsCollection.find(query);
             const appointments = await cursor.toArray();
             res.json(appointments)
         })
+        app.post('/appointments', async (req, res) => {
+            const appointment = req.body;
+            const result = await appointmentsCollection.insertOne(appointment)
+            console.log(appointment)
+            res.json(result)
+        })
 
+        app.post('/users', async (req, res) => {
+            const users = req.body;
+            const result = await usersCollection.insertOne(users)
+            res.json(result)
+        })
+        app.put('/users', async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email };
+            const options = { upsert: true };
+            const updateDoc = { $set: user }
+            const result = usersCollection.updateOne(filter, updateDoc, options);
+            res.json(result)
+        })
+
+        app.put('/users/admin', async (req, res) => {
+            const user = req.body;
+            console.log('put', user)
+            const filter = { email: user.email }
+            const updateDoc = { $set: { role: 'admin' } }
+            const result = await usersCollection.updateOne(filter, updateDoc)
+            res.json(result)
+        })
 
 
 
